@@ -1,0 +1,74 @@
+name: Candidate CI
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      CI_EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install source test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install '.[test]'
+      - name: Source tests
+        run: python -m pytest -q
+      - name: Build exact wheel
+        run: |
+          rm -rf dist build *.egg-info
+          python -m build --wheel
+          sha256sum dist/*.whl | tee dist/WHEEL_SHA256.txt
+      - name: Exact-wheel cold install and empty-cwd replay
+        run: |
+          python -m venv /tmp/mtel-wheel-venv
+          /tmp/mtel-wheel-venv/bin/python -m pip install --upgrade pip
+          /tmp/mtel-wheel-venv/bin/python -m pip install pytest dist/*.whl
+          cd /tmp
+          /tmp/mtel-wheel-venv/bin/python -c 'import mtel_runtime; print(mtel_runtime.__version__)'
+          /tmp/mtel-wheel-venv/bin/mtel-runtime inspect --source "$GITHUB_WORKSPACE/source/core_public.mtel"
+          /tmp/mtel-wheel-venv/bin/python -m pytest -q "$GITHUB_WORKSPACE/tests"
+      - name: Benchmark
+        run: python benchmarks/benchmark_evaluator.py --iterations 2000
+      - name: Bind CI-tested wheel
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          wheels = sorted(Path('dist').glob('*.whl'))
+          if len(wheels) != 1:
+              raise SystemExit(f'expected exactly one wheel, found {len(wheels)}')
+          wheel = wheels[0]
+          payload = {
+              'schema_version': '1.0',
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'commit_sha': os.environ['CI_EXACT_SHA'],
+              'python_version': '3.11',
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'wheel_filename': wheel.name,
+              'wheel_sha256': hashlib.sha256(wheel.read_bytes()).hexdigest(),
+              'tests': 'source_and_installed_wheel_passed_before_binding',
+          }
+          Path('dist/CI_TESTED_WHEEL_BINDING.json').write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + '\n',
+              encoding='utf-8',
+          )
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exact-wheel-python311
+          path: |
+            dist/*.whl
+            dist/WHEEL_SHA256.txt
+            dist/CI_TESTED_WHEEL_BINDING.json
+          if-no-files-found: error

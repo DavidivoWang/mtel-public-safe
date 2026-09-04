@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/mtel/when_input_v0_2.schema.json",
+  "title": "MTEL when input v0.2",
+  "type": "object",
+  "required": ["request"],
+  "additionalProperties": false,
+  "properties": {
+    "request": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["external_fact", "document_fact", "numeric_replay"]
+        },
+        "output_contract": {"type": "string"}
+      }
+    },
+    "factual_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "has_evidence": {"type": "boolean"}
+      }
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "available": {"type": "boolean"}
+      }
+    },
+    "numeric_replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputs_complete": {"type": "boolean"}
+      }
+    },
+    "repo": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"request": {"properties": {"kind": {"const": "external_fact"}}}}},
+      "then": {
+        "required": ["factual_claim"],
+        "properties": {"factual_claim": {"required": ["has_evidence"]}}
+      }
+    },
+    {
+      "if": {"properties": {"request": {"properties": {"kind": {"const": "document_fact"}}}}},
+      "then": {
+        "required": ["document"],
+        "properties": {"document": {"required": ["available"]}}
+      }
+    },
+    {
+      "if": {"properties": {"request": {"properties": {"kind": {"const": "numeric_replay"}}}}},
+      "then": {
+        "required": ["numeric_replay"],
+        "properties": {"numeric_replay": {"required": ["inputs_complete"]}}
+      }
+    }
+  ]
+}

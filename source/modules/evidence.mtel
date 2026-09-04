@@ -1,0 +1,11 @@
+@spec MTEL/0.2
+
+rule block_unsupported_fact priority 100 veto
+  when request.kind == "external_fact" and factual_claim.has_evidence == false
+  -> BLOCK "evidence_required"
+end
+
+rule route_supported_fact priority 80
+  when request.kind == "external_fact" and factual_claim.has_evidence == true
+  -> ROUTE "evidence_bounded_answer"
+end

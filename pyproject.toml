@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mtel-public-safe-candidate"
+version = "0.2.2"
+description = "A smaller reconstructed MTEL/0.2 condition-dispatch candidate"
+requires-python = ">=3.11"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9", "build>=1,<2"]
+
+[project.scripts]
+mtel-runtime = "mtel_runtime.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["mtel_runtime*"]
+
+[tool.setuptools.package-data]
+"mtel_runtime.schemas" = ["*.json"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]

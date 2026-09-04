@@ -1,0 +1,17 @@
+@spec MTEL/0.2
+include "modules/evidence.mtel"
+
+rule route_document priority 60
+  when request.kind == "document_fact" and document.available == true
+  -> ROUTE "document_bounded_answer"
+end
+
+rule route_numeric_replay priority 60
+  when request.kind == "numeric_replay" and numeric_replay.inputs_complete == true
+  -> ROUTE "deterministic_numeric_replay"
+end
+
+flow default
+  bind *
+  overlap hold
+end

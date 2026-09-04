@@ -1,0 +1,4 @@
+{
+  "request": {"kind": "external_fact"},
+  "factual_claim": {"has_evidence": false}
+}
