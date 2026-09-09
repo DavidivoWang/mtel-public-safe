@@ -25,3 +25,11 @@ def test_equal_priority_conflict_holds(tmp_path: Path):
     result = run_mtel(source, _input())
     assert result["status"] == "HOLD"
     assert result["decision"]["target"] == "rule_conflict"
+
+
+def test_missing_flow_is_attributed_to_execution_stage(tmp_path: Path):
+    source = _write(tmp_path, '@spec MTEL/0.2\nrule allow priority 10\n  when true\n  -> PASS "ok"\nend\nflow default\n  bind *\n  overlap hold\nend\n')
+    result = run_mtel(source, _input(), flow="missing")
+    assert result["status"] == "ERROR"
+    assert result["error"]["code"] == "FLOW_NOT_FOUND"
+    assert result["trace"] == ["parse:PASS", "flow:missing:ERROR"]

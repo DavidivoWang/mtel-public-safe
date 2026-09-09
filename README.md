@@ -12,7 +12,7 @@ This repository contains a **smaller reconstructed MTEL/0.2 condition-dispatch c
 - restricted expression AST; no calls, imports, subscripts, file, network, or tool access;
 - duplicate rule and flow names are rejected;
 - local includes are bounded and traversal/cycles are rejected;
-- input is validated against the packaged MTEL/0.2 schema before rule evaluation;
+- input is validated by a dependency-free runtime validator kept congruent with the packaged MTEL/0.2 JSON Schema before rule evaluation;
 - normal errors are structured and omit Python traceback;
 - `--debug` enables diagnostic traceback output;
 - JSON audit events are emitted as strict-flat objects with scalar values when log level is `INFO`.

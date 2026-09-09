@@ -6,7 +6,7 @@ Execution order:
 
 1. parse MTEL/0.2 source and bounded includes;
 2. reject duplicate names and invalid syntax;
-3. validate input against the packaged nested schema;
+3. validate input with a dependency-free runtime validator kept congruent with the packaged nested JSON Schema;
 4. evaluate bound rules with the restricted AST evaluator;
 5. apply veto, priority, source order, and overlap policy;
 6. return a deterministic structured result and flat JSON audit events.
