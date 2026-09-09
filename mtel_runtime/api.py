@@ -74,19 +74,25 @@ def run_mtel(
 ) -> dict[str, Any]:
     source = str(source_path)
     emit("parse_started", mode="run", source=source)
+    stage = "parse"
     try:
         if not isinstance(input_data, dict):
             raise MTELRuntimeError("INPUT_TYPE", "input_data must be an object")
         program = parse_program(source_path)
         emit("parse_completed", mode="run", source_files=len(program.source_files))
+        stage = "schema"
         validate_input(input_data)
         emit("input_validated", schema="when_input_v0_2")
+        stage = "execution"
         return execute(program, input_data, flow)
     except Exception as exc:
         code = getattr(exc, "code", "INTERNAL_ERROR")
         if code.startswith("SCHEMA_"):
             emit("input_validation_failed", error=code)
             trace = ["parse:PASS", "schema:ERROR"]
+        elif stage == "execution":
+            emit("execution_failed", flow=flow, error=code)
+            trace = ["parse:PASS", f"flow:{flow}:ERROR"]
         else:
             emit("parse_failed", mode="run", error=code)
             trace = ["parse:ERROR"]
