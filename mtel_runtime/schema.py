@@ -32,6 +32,11 @@ def _required_bool(obj: dict[str, Any], key: str, path: str) -> None:
         raise MTELRuntimeError("SCHEMA_TYPE", f"{path}.{key}: expected boolean")
 
 
+def _optional_bool(obj: dict[str, Any], key: str, path: str) -> None:
+    if key in obj and not isinstance(obj[key], bool):
+        raise MTELRuntimeError("SCHEMA_TYPE", f"{path}.{key}: expected boolean")
+
+
 def validate_input(data: dict[str, Any]) -> None:
     _reject_extra(data, TOP_LEVEL_KEYS, "$")
     request = _object(data, "request", required=True)
@@ -47,14 +52,15 @@ def validate_input(data: dict[str, Any]) -> None:
     if "output_contract" in request and not isinstance(request["output_contract"], str):
         raise MTELRuntimeError("SCHEMA_TYPE", "request.output_contract: expected string")
 
-    for name, allowed in (
-        ("factual_claim", {"has_evidence"}),
-        ("document", {"available"}),
-        ("numeric_replay", {"inputs_complete"}),
+    for name, field in (
+        ("factual_claim", "has_evidence"),
+        ("document", "available"),
+        ("numeric_replay", "inputs_complete"),
     ):
         obj = _object(data, name)
         if obj is not None:
-            _reject_extra(obj, allowed, name)
+            _reject_extra(obj, {field}, name)
+            _optional_bool(obj, field, name)
     for name in ("repo", "execution", "context"):
         _object(data, name)
 
