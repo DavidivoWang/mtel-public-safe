@@ -33,3 +33,48 @@ def test_missing_flow_is_attributed_to_execution_stage(tmp_path: Path):
     assert result["status"] == "ERROR"
     assert result["error"]["code"] == "FLOW_NOT_FOUND"
     assert result["trace"] == ["parse:PASS", "flow:missing:ERROR"]
+
+
+def test_equal_priority_first_uses_definition_order_and_emits_selection(tmp_path: Path, monkeypatch):
+    events = []
+    monkeypatch.setattr("mtel_runtime.engine.emit", lambda event, **fields: events.append((event, fields)))
+    rules = {
+        "a": 'rule a priority 5\n  when true\n  -> PASS "a_target"\nend\n',
+        "b": 'rule b priority 5\n  when true\n  -> ROUTE "b_target"\nend\n',
+    }
+    for first, second, action in (("a", "b", "PASS"), ("b", "a", "ROUTE")):
+        events.clear()
+        source = _write(
+            tmp_path,
+            '@spec MTEL/0.2\n'
+            + rules[first] + rules[second]
+            + 'flow default\n  bind *\n  overlap first\nend\n',
+        )
+        result = run_mtel(source, _input())
+
+        assert result["status"] == action
+        assert result["decision"] == {
+            "action": action, "target": f"{first}_target",
+            "rule": first, "priority": 5, "veto": False,
+        }
+        assert result["matched_rules"] == [first, second]
+        assert result["trace"][-1] == f"selected:{first}"
+        selected = [fields for event, fields in events if event == "rule_selected"]
+        assert selected == [{
+            "rule": first, "action": action, "target": f"{first}_target",
+            "priority": 5, "veto": False,
+        }]
+
+
+def test_overlap_first_filters_veto_before_source_order(tmp_path: Path):
+    source = _write(
+        tmp_path,
+        '@spec MTEL/0.2\n'
+        'rule allow priority 10\n  when true\n  -> PASS "ok"\nend\n'
+        'rule block priority 1 veto\n  when true\n  -> BLOCK "stop"\nend\n'
+        'flow default\n  bind *\n  overlap first\nend\n',
+    )
+    result = run_mtel(source, _input())
+    assert result["status"] == "BLOCK"
+    assert result["decision"]["rule"] == "block"
+    assert result["matched_rules"] == ["allow", "block"]
