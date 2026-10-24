@@ -7,7 +7,9 @@ This repository contains a **smaller reconstructed MTEL/0.2 condition-dispatch c
 - `run_mtel(source_path, input_data, flow="default")` parses, validates the input contract, evaluates conditions, arbitrates matching rules, and returns a structured decision.
 - `inspect_mtel(source_path)` parses the source and compiles every `when` expression without executing a decision.
 
-## Verified design boundaries
+## CI-verified design boundaries
+
+Here, **CI-verified** means these public engineering boundaries are exercised by the repository's current tests and CI at the tested commit. It does not mean independent third-party validation or MTEL system conformance.
 
 - restricted expression AST; no calls, imports, subscripts, file, network, or tool access;
 - duplicate rule and flow names are rejected;
@@ -40,7 +42,7 @@ python -m pip install '.[test]'
 }
 ```
 
-The input says that the request is an external-fact task and that the factual claim does not have evidence.
+The input says that the request is an external-fact task and that the factual claim does not have evidence. The `has_evidence` boolean is supplied by the caller as part of the input contract; this runtime validates and consumes that field but does not independently decide whether the underlying evidence is adequate.
 
 ### 3. Run the MTEL program
 
@@ -82,7 +84,7 @@ The returned payload will identify the selected rule and decision. The key field
 
 The full output also includes rule evaluations and matched rules.
 
-To emit the flat JSON audit events as the run executes, add `--log-level INFO` before the `run` subcommand:
+Audit emission is opt-in at `INFO`; it is not an always-on external evidence recorder. To emit the flat JSON audit events as the run executes, add `--log-level INFO` before the `run` subcommand:
 
 ```bash
 python -m mtel_runtime --log-level INFO run \
